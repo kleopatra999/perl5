@@ -52,6 +52,11 @@ XXX For a release on a stable branch, this section aspires to be:
 
 [ List each incompatible change as a =head2 entry ]
 
+=head2 The C<:locked> and C<:unique> attributes have been removed
+
+These have been no-ops and deprecated since perl 5.12 and 5.10,
+respectively.
+
 =head1 Deprecations
 
 =head2 String delimiters that aren't stand-alone graphemes are now
