@@ -140,7 +140,7 @@ sub AUTOLOAD {
 }
 
 my $builtin = $] ge '5.025009'
-    ? qr/lvalue|method|locked|shared/
+    ? qr/lvalue|method|shared/
     : qr/lvalue|method|locked|shared|unique/;
 
 sub _gen_handler_AH_() {

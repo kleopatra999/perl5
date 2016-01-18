@@ -1334,7 +1334,6 @@ Carp::confess("SPECIAL in deparse_sub") if $cv->isa("B::SPECIAL");
     }
     if ($cv->CvFLAGS & (CVf_METHOD|CVf_LOCKED|CVf_LVALUE|CVf_ANONCONST)) {
         push @attrs, "lvalue" if $cv->CvFLAGS & CVf_LVALUE;
-        push @attrs, "locked" if $cv->CvFLAGS & CVf_LOCKED;
         push @attrs, "method" if $cv->CvFLAGS & CVf_METHOD;
         push @attrs, "const"  if $cv->CvFLAGS & CVf_ANONCONST;
     }
