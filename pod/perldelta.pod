@@ -97,7 +97,9 @@ There may well be none in a stable release.
 
 =item *
 
-XXX
+Reading from a file line-by-line with C<readline()> or C<< E<lt>E<gt> >> should
+now typically be faster due to a better implementation of the code that
+searches for the next newline character.
 
 =back
 
