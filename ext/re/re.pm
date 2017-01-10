@@ -421,20 +421,34 @@ under non-strict.
 
 =head2 '/flags' mode
 
-When C<use re '/flags'> is specified, the given flags are automatically
+When C<use re '/I<flags>'> is specified, the given I<flags> are automatically
 added to every regular expression till the end of the lexical scope.
+I<flags> can be any combination of 
+C<'a'>,
+C<'aa'>,
+C<'d'>,
+C<'i'>,
+C<'l'>,
+C<'m'>,
+C<'n'>,
+C<'p'>,
+C<'s'>,
+C<'u'>,
+C<'x'>,
+and/or
+C<'xx'>.
 
-C<no re '/flags'> will turn off the effect of C<use re '/flags'> for the
+C<no re '/I<flags>'> will turn off the effect of C<use re '/I<flags>'> for the
 given flags.
 
-For example, if you want all your regular expressions to have /msx on by
+For example, if you want all your regular expressions to have /msxx on by
 default, simply put
 
-    use re '/msx';
+    use re '/msxx';
 
 at the top of your code.
 
-The character set /adul flags cancel each other out. So, in this example,
+The character set C</adul> flags cancel each other out. So, in this example,
 
     use re "/u";
     "ss" =~ /\xdf/;
@@ -442,6 +456,13 @@ The character set /adul flags cancel each other out. So, in this example,
     "ss" =~ /\xdf/;
 
 the second C<use re> does an implicit C<no re '/u'>.
+
+Similarly, 
+
+    use re "/xx";   # Doubled-x
+    ...
+    use re "/x";    # Single x from here on
+    ...
 
 Turning on one of the character set flags with C<use re> takes precedence over the
 C<locale> pragma and the 'unicode_strings' C<feature>, for regular
