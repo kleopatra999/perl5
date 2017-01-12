@@ -86,11 +86,11 @@ inverted, which otherwise could be highly confusing.  See
 L<perlrecharclass/Bracketed Character Classes>, and
 L<perlrecharclass/Negation>.
 
-=item B<C<x>>
+=item B<C<x>> and B<C<xx>>
 X</x>
 
 Extend your pattern's legibility by permitting whitespace and comments.
-Details in L</"/x">
+Details in L</E<sol>x and  E<sol>xx>
 
 =item B<C<p>>
 X</p> X<regex, preserve> X<regexp, preserve>
@@ -165,9 +165,9 @@ the C<(?...)> construct, see L</Extended Patterns> below.
 Some of the modifiers require more explanation than given in the
 L</Overview> above.
 
-=head4 /x
+=head4 C</x> and  C</xx>
 
-C</x> tells
+A single C</x> tells
 the regular expression parser to ignore most whitespace that is neither
 backslashed nor within a bracketed character class.  You can use this to
 break up your regular expression into (slightly) more readable parts.
@@ -189,6 +189,20 @@ escaping the C<\n> with a backslash or C<\Q>.
 You can use L</(?#text)> to create a comment that ends earlier than the
 end of the current line, but C<text> also can't contain the closing
 delimiter unless escaped with a backslash.
+
+Starting in Perl v5.26, if the modifier has a second C<x> within it,
+it does everything that a single C</x> does, but additionally
+non-backslashed SPACE and TAB characters within bracketed character
+classes are also generally ignored, and hence can be added to make the
+classes more readable.
+
+    / [d-e g-i 3-7]/xx
+    /[ ! @ " # $ % ^ & * () = ? <> ' ]/xx
+
+may be easier to grasp than the squashed equivalents
+
+    /[d-eg-i3-7]/
+    /[!@"#$%^&*()=?<>']/
 
 Taken together, these features go a long way towards
 making Perl's regular expressions more readable.  Here's an example:
@@ -1111,6 +1125,24 @@ These modifiers do not carry over into named subpatterns called in the
 enclosing group. In other words, a pattern such as C<((?i)(?&NAME))> does not
 change the case-sensitivity of the C<"NAME"> pattern.
 
+In the case of the modifier C<x>, which, if it appears twice has a
+different meaning, the meaning is derived entirely from how many there
+are in the innermost scope.  They are not additive with any other
+scopes.  For example, in
+
+    /(?-x)foo/xx
+
+both C</x> and C</xx> are turned off for matching C<foo>.  And in
+
+    /(?x)foo/x
+
+C</x> but NOT C</xx> is turned on for matching C<foo>.  (One might
+mistakenly think that since the inner C<(?x:> is already in the scope of
+C</x>, that the result would effectively be the sum of them, yielding
+C</xx>.  It doesn't work that way.) Similarly, doing something like
+C<(?xx-x)foo> turns off all C<x> behavior for matching C<foo>, it is not
+that you subtract 1 C<x> from 2 to get 1 C<x> remaining.
+
 Any of these modifiers can be set to apply globally to all regular
 expressions compiled within the scope of a C<use re>.  See
 L<re/"'/flags' mode">.
@@ -1164,6 +1196,13 @@ is equivalent to the more verbose
 
 Note that any C<()> constructs enclosed within this one will still
 capture unless the C</n> modifier is in effect.
+
+The C<x> flag behaves identically as described above in
+L</(?adlupimnsx-imnsx)>.  The number of C<x> flags in the innermost
+scope completely determines the behavior for this scope, regardless of
+how many there are in outer scopes; they are not additive.  And doing
+something like C<(?xx-x:foo)> turns off all C<x> behavior for matching
+C<foo>.
 
 Starting in Perl 5.14, a C<"^"> (caret or circumflex accent) immediately
 after the C<"?"> is a shorthand equivalent to C<d-imnsx>.  Any positive
