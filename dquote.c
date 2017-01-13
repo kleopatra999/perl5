@@ -46,8 +46,9 @@ Perl_grok_bslash_c(pTHX_ const char source, const bool output_warning)
         clearer[i++] = result;
         clearer[i++] = '\0';
 
-        Perl_ck_warner(aTHX_ packWARN(WARN_SYNTAX),
-                        "\"\\c%c\" is more clearly written simply as \"%s\"",
+        Perl_ck_warner(aTHX_ packWARN2(WARN_SYNTAX,WARN_DEPRECATED),
+                        "\"\\c%c\" is more clearly written simply as \"%s\". "
+                        "This will be a fatal error in Perl 5.28",
                         source,
                         clearer);
     }
