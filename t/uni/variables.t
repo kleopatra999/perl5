@@ -130,8 +130,13 @@ for ( 0x0 .. 0xff ) {
                      "$name as a length-1 variable generates a syntax error");
             $tests++;
             utf8::upgrade($chr);
+            #
+            # These characters are malformed UTF-8. This will croak
+            # in an earlier stage.
+            #
             evalbytes "no strict; use utf8; \$$chr = 4;",
-            like($@, qr/ syntax\ error | Unrecognized\ character /x,
+            like($@, qr/ syntax\ error | Unrecognized\ character |
+                         Malformed\ UTF-8\ string\ in /x,
                      "  ... and the same under 'use utf8'");
             $tests++;
         }

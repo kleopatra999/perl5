@@ -267,7 +267,7 @@ SKIP:
     );
     fresh_perl_like(
         qq(BEGIN{\$^H=0x800000}\n   0m 0\xB5\xB500\xB5\0),
-        qr/Unrecognized character \\x\{0\}; marked by <-- HERE after    0m.*<-- HERE near column 12 at - line 2./,
+        qr/Malformed UTF-8 string in "XPosixWord" at - line 2./,
         {},
         '[perl #129000] read before buffer'
     );
