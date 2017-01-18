@@ -2957,7 +2957,7 @@ S_scan_const(pTHX_ char *start)
 
                     /* Drops down to generic code to process current byte */
                 }
-                else {
+                else {  /* Is a '-' in the context where it means a range */
                     if (didrange) { /* Something like y/A-C-Z// */
                         Perl_croak(aTHX_ "Ambiguous range in transliteration operator");
                     }
@@ -2978,6 +2978,8 @@ S_scan_const(pTHX_ char *start)
                     if (this_utf8 && UTF8_IS_ABOVE_LATIN1(*s)) {
                         has_above_latin1 = TRUE;
                     }
+
+                    /* Drops down to generic code to process current byte */
                 }
             }  /* End of not a range */
             else {
@@ -2989,7 +2991,7 @@ S_scan_const(pTHX_ char *start)
                  * 'd'  points to just beyond the range end in the 'sv' string,
                  *      where we would next place something
                  * 'offset_to_max' is the offset in 'sv' at which the character
-                 *      before 'd' begins.
+                 *      (the range's maximum end point) before 'd'  begins.
                  */
                 const char * max_ptr = SvPVX_const(sv) + offset_to_max;
                 const char * min_ptr;
@@ -3031,8 +3033,8 @@ S_scan_const(pTHX_ char *start)
                 if (convert_unicode) {
 
                     /* Special handling is needed for these portable ranges.
-                     * They are defined to all be in Unicode terms, which
-                     * include all Unicode code points between the end points.
+                     * They are defined to be in Unicode terms, which includes
+                     * all the Unicode code points between the end points.
                      * Convert to Unicode to get the Unicode range.  Later we
                      * will convert each code point in the range back to
                      * native.  */
@@ -3081,12 +3083,12 @@ S_scan_const(pTHX_ char *start)
 
                     /* If everything in the transliteration is below 256, we
                      * can avoid special handling later.  A translation table
-                     * of each of those bytes is created.  And so we expand out
-                     * all ranges to their constituent code points.  But if
-                     * we've encountered something above 255, the expanding
-                     * won't help, so skip doing that.  But if it's EBCDIC, we
-                     * may have to look at each character below 256 if we have
-                     * to convert to/from Unicode values */
+                     * for each of those bytes is created in op.c.  And so we
+                     * expand out all ranges to their constituent code points.
+                     * But if we've encountered something above 255, the
+                     * expanding won't help, so skip doing that.  But if it's
+                     * EBCDIC, we may have to look at each character below 256
+                     * if we have to convert to/from Unicode values */
                     if (   has_above_latin1
 #ifdef EBCDIC
 		        && (range_min > 255 || ! convert_unicode)
@@ -3095,7 +3097,7 @@ S_scan_const(pTHX_ char *start)
                         /* Move the high character one byte to the right; then
                          * insert between it and the range begin, an illegal
                          * byte which serves to indicate this is a range (using
-                         * a '-' could be ambiguous). */
+                         * a '-' would be ambiguous). */
                         char *e = d++;
                         while (e-- > max_ptr) {
                             *(e + 1) = *e;
