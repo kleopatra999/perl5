@@ -2994,11 +2994,12 @@ S_scan_const(pTHX_ char *start)
                  *      (the range's maximum end point) before 'd'  begins.
                  */
                 char * max_ptr = SvPVX(sv) + offset_to_max;
-                const char * min_ptr;
+                char * min_ptr;
                 IV range_min;
 		IV range_max;	/* last character in range */
-                STRLEN save_offset;
                 STRLEN grow;
+                Size_t offset_to_min = 0;
+                Size_t extras = 0;
 #ifdef EBCDIC
                 bool convert_unicode;
                 IV real_range_max = 0;
@@ -3140,39 +3141,70 @@ S_scan_const(pTHX_ char *start)
 		}
 
                 /* Here we need to expand out the string to contain each
-                 * character in the range.  Grow the output to handle this */
-
-                save_offset  = min_ptr - SvPVX_const(sv);
-
-                /* The base growth is the number of code points in the range */
-                grow = range_max - range_min + 1;
-                if (has_utf8) {
-
-                    /* But if the output is UTF-8, some of those characters may
-                     * need two bytes (since the maximum range value here is
-                     * 255, the max bytes per character is two).  On ASCII
-                     * platforms, it's not much trouble to get an accurate
-                     * count of what's needed.  But on EBCDIC, the ones that
-                     * need 2 bytes are scattered around, so just use a worst
-                     * case value instead of calculating for that platform.  */
+                 * character in the range.  Grow the output to handle this.
+                 * For non-UTF8, we need a byte for each code point in the
+                 * range, minus the three that we've already allocated for: the
+                 * minus sign and the min and max.  For UTF-8, we need this
+                 * plus an extra byte for each code point that occupies two
+                 * bytes (is variant) when in UTF-8 (except if one or the other
+                 * of the end points occupies two bytes, we've already
+                 * allocated for them).  For ASCII platforms and Unicode ranges
+                 * on EBCDIC platforms, it's easy to calculate a precise
+                 * number.  To start, we count the variants in the range, which
+                 * we need elsewhere in this function anyway.  (For the case
+                 * where it isn't easy to calculate, 'extras' is initialized to
+                 * 0, and the calculation is done in a loop further down. */
 #ifdef EBCDIC
-                    grow *= 2;
-#else
-                    /* Only those above 127 require 2 bytes.  This may be
-                     * everything in the range, or not */
-                    if (range_min > 127) {
-                        grow *= 2;
-                    }
-                    else if (range_max > 127) {
-                        grow += range_max - 127;
-                    }
+                if (convert_unicode)
 #endif
+                {
+                    /* This is executed unconditionally on ASCII, and for
+                     * Unicode ranges on EBCDIC.  We don't count the end points
+                     * here, as they will already have been counted as they
+                     * were parsed.  All the variant characters are contiguous,
+                     * above a certain value.  We just count how many code
+                     * points in the range are above that value. */
+                    if (range_min >= UTF_CONTINUATION_MARK) {
+                        extras = (range_max - 1) - (range_min + 1) + 1;
+                    }
+                    else if (range_max >= UTF_CONTINUATION_MARK) {
+                        extras = (range_max - 1) - UTF_CONTINUATION_MARK + 1;
+                    }
                 }
 
-                /* Subtract 3 for the bytes that were already accounted for
-                 * (min, max, and the hyphen) */
-                d = save_offset + SvGROW(sv, SvLEN(sv) + grow - 3);
+                utf8_variant_count += extras;
 
+                /* The base growth is the number of code points in the range,
+                 * not including the endpoints, which have already been sized
+                 * for (and output).  We also subtract 1 because a minus has
+                 * been allocated for, but which will won't be written */
+                grow = (range_max - 1) - (range_min + 1) + 1 - 1;
+
+                if (has_utf8) {
+#ifdef EBCDIC
+                    /* In some cases in EBCDIC, we haven't calculated a precise
+                     * amount needed for the UTF-8 variants.  Just assume the
+                     * worst case, that everything will expand by a byte */
+                    if (! convert_unicode) {
+                        grow *= 2;
+                        grow += 2;  /* Assume the end points also expand */
+                    }
+                    else
+#endif
+                    {
+                        /* Otherwise we know exactly how many variants there
+                         * are in the interior of the range.  But we don't know
+                         * if the endpoints were variant; just assume they are
+                         * */
+                        grow += extras + 2;
+                    }
+                }
+
+                /* Grow, but position the output to overwrite the range min end
+                 * point, because in some cases we overwrite that */
+                SvCUR_set(sv, d - SvPVX_const(sv));
+                offset_to_min = min_ptr - SvPVX_const(sv);
+                d = offset_to_min + SvGROW(sv, SvLEN(sv) + grow);
 #ifdef EBCDIC
                 /* Here, we expand out the range. */
                 if (convert_unicode) {
@@ -3210,9 +3242,23 @@ S_scan_const(pTHX_ char *start)
                     }
                     else {
                         d++;
-                        for (i = range_min + 1; i <= range_max; i++) {
+                        assert(range_min + 1 <= range_max);
+                        for (i = range_min + 1; i < range_max; i++) {
+#ifdef EBCDIC
+                            /* In this case on EBCDIC, we haven't calculated
+                             * the variants.  Do it here, as we go along */
+                            if (! UVCHR_IS_INVARIANT(i)) {
+                                utf8_variant_count++;
+                            }
+#endif
                             *d++ = (char)i;
                         }
+
+                        /* The range_max is done outside the loop so as to
+                         * avoid having to special case not incrementing
+                         * 'utf8_variant_count' on EBCDIC (it's already been
+                         * counted when originally parsed) */
+                        *d++ = (char) range_max;
 		    }
 		}
 
