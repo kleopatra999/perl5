@@ -672,7 +672,7 @@ use Config;
 unless ($Config{d_double_has_inf} && $Config{d_double_has_nan}) {
     print <<EOM ;
 SKIPPED
-# No inf/nan support
+# No nan support
 EOM
     exit ;
 }

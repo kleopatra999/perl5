@@ -911,14 +911,6 @@ closedir() attempted on invalid dirhandle $ｆｏｏ at - line 23.
 ########
 
 # pp_sys.c [pp_gmtime]
-use Config;
-unless ($Config{d_double_has_nan}) {
-    print <<EOM ;
-SKIPPED
-# No nan support
-EOM
-    exit ;
-}
 gmtime("NaN");
 localtime("NaN");
 use warnings "overflow";
@@ -926,10 +918,10 @@ gmtime("NaN");
 localtime("NaN");
 
 EXPECT
-gmtime(NaN) too large at - line 14.
-gmtime(NaN) failed at - line 14.
-localtime(NaN) too large at - line 15.
-localtime(NaN) failed at - line 15.
+gmtime(NaN) too large at - line 6.
+gmtime(NaN) failed at - line 6.
+localtime(NaN) too large at - line 7.
+localtime(NaN) failed at - line 7.
 
 ########
 # pp_sys.c [pp_alarm]
