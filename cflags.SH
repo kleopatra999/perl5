@@ -53,9 +53,33 @@ warn=''
 case "$gccversion" in
 '') ;;
 Intel*) ;; # The Intel C++ plays gcc on TV but is not really it.
+# clang -Weverything is what gcc -Wall (+ -Wextra) was supposed to be.
+*" Clang "*|*"Apple LLVM "*)
+    case "$ccflags" in
+    *-Weverything*) ;;
+    *)
+        # -Wno-unused-macros: We have tons of macros and it's OK if we don't use them.
+        # -Wno-gnu-statement-expression: Commonly used all over the codebase.
+        # -Wno-shadow: We have many common global variable names.  We would have to change many local variables.
+        # -Wno-overlength-strings: Compiler limit we don't care about
+        # -Wno-disabled-macro-expansion
+        # -Wno-variadic-macros: We use them.
+        # -Wno-cast-align
+        # -Wno-extended-offsetof
+        # -Wno-c11-extensions
+        # -Wno-format-nonliteral
+        # -Wno-switch-enum: This one is not mollified by a default in the case.  https://stackoverflow.com/questions/16631713/
+        # -Wno-conversion: We have far too many conversions to clean up
+        # -Wno-missing-variable-declarations: globals.c barfs
+        echo "cflags.SH: Adding -Weverything -Wno-unused-macros -Wno-gnu-statement-expression -Wno-shadow -Wno-overlength-strings -Wno-padded -Wno-sign-conversion -Wno-shorten-64-to-32 -Wno-disabled-macro-expansion -Wno-variadic-macros -Wno-cast-align -Wno-extended-offsetof -Wno-c11-extensions -Wno-format-nonliteral -Wno-switch-enum -Wno-conversion -Wno-missing-variable-declarations"
+        warn="$warn -Weverything -Wno-unused-macros -Wno-gnu-statement-expression -Wno-shadow -Wno-overlength-strings -Wno-padded -Wno-sign-conversion -Wno-shorten-64-to-32 -Wno-disabled-macro-expansion -Wno-variadic-macros -Wno-cast-align -Wno-extended-offsetof -Wno-c11-extensions -Wno-format-nonliteral -Wno-switch-enum -Wno-conversion -Wno-missing-variable-declarations" ;;
+    esac
+    ;;
 *)  case "$ccflags" in
     *-Wall*) ;;
-    *) warn="$warn -Wall" ;;
+    *)
+        echo "cflags.SH: Adding -Wall."
+        warn="$warn -Wall" ;;
     esac
     ;;
 esac
@@ -241,6 +265,17 @@ Intel*) ;; # # Is that you, Intel C++?
                   # -pedantic* (with -std=c89) covers -Werror=d-a-s.
                   case "$stdflags$warn" in
                   *-std=c89*-pedantic*|*-pedantic*-std=c89*) ;;
+                  *)
+                     echo "cflags.SH: Adding $opt."
+                     warn="$warn $opt"
+                     ;;
+                  esac
+                  ;;
+               -Wextra)
+                  # -Wextra is for (pure) gcc, not needed
+                  # with clang -Weverything.
+                  case " $warn " in
+                  *-Weverything*) ;;
                   *)
                      echo "cflags.SH: Adding $opt."
                      warn="$warn $opt"
