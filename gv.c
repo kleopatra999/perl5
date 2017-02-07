@@ -488,7 +488,7 @@ S_gv_init_svtype(pTHX_ GV *gv, const svtype sv_type)
     }
 }
 
-static void core_xsub(pTHX_ CV* cv);
+static void core_xsub(pTHX_ CV* cv) __attribute__noreturn__;
 
 static GV *
 S_maybe_add_coresub(pTHX_ HV * const stash, GV *gv,
